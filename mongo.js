@@ -6,6 +6,7 @@ if (process.argv.length < 3) {
 }
 
 const password = process.argv[2]
+const useCase = process.argv[5]
 const name = process.argv[3]
 const number = process.argv[4]
 
@@ -38,7 +39,7 @@ if (process.argv.length === 3) {
     })
 }
 
-if (process.argv.length === 5) {
+if (process.argv.length === 6 ) {
     const person = new Person({
         id:  generateId(),
         name: name,

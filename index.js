@@ -1,5 +1,6 @@
 const express = require('express')
 const app = express()
+const Person = require('./models/person')
 const morgan = require('morgan')
 const cors = require('cors')
 
@@ -75,7 +76,14 @@ app.get('/', (request,response) => {
     response.send('<h1>Persons frontpage<h1>')
 })
 app.get('/api/persons' ,(request,response) => {
-    response.json(persons)
+    Person.find({})
+    .then(persons => {
+        response.json(persons)
+    })
+    .catch(error => {
+        console.log(error)
+        response.status(500).json({error: 'something went wrong fetching from database'})
+    })
 })
 app.get('/info', (request, response) => {
     const d = new Date()

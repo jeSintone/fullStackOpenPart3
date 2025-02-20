@@ -1,16 +1,29 @@
+require("dotenv").config()
 const express = require('express')
 const app = express()
-const Person = require('./models/person')
 const morgan = require('morgan')
 const cors = require('cors')
+const mongoose = require('mongoose')
 
+
+const Person = require('./models/person')
+
+const url = process.env.MONGODB_URI
+
+mongoose.set('strictQuery', false)
+mongoose.connect(url)
+    .then(result => {
+        console.log("Connected to MongoDB")
+    })
+    .catch((error) => {
+        console.log("Error connecting to MongoDB: ", error.message)
+    })
 
 app.use(cors())
 morgan.token('body', (req) => JSON.stringify(req.body))
 app.use(morgan(':method :url - :response-time[3] ms :body'))
 
 app.use(express.json())
-
 
 let persons = [
     {
@@ -37,8 +50,8 @@ let persons = [
 
 app.use(express.static('dist'))
 
-const unknownEndpoint = (request,response) => {
-    response.status(404).send({error: 'unknown endpoint'})
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
 }
 
 const generateId = () => {
@@ -46,14 +59,15 @@ const generateId = () => {
     console.log(randomNumber)
     return randomNumber
 }
-app.post('/api/persons', (request,response) => {
+
+app.post('/api/persons', (request, response) => {
     const body = request.body
 
-    if (!body.name) {
+    if (body.name === undefined) {
         return response.status(400).json({
             error: 'name is missing'
         })
-    } else if (!body.number) {
+    } else if (body.number === undefined) {
         return response.status(400).json({
             error: 'number is missing'
         })
@@ -62,49 +76,55 @@ app.post('/api/persons', (request,response) => {
             error: 'Name already in Phonebook'
         })
     }
-    const person = {
-        id: generateId(),
+    const person = new Person({
         name: body.name,
-        number: body.number,
-    }
-    persons = persons.concat(person)
-
-    response.json(person)
+        number: body.number
+    })
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 })
 
-app.get('/', (request,response) => {
+app.get('/', (request, response) => {
     response.send('<h1>Persons frontpage<h1>')
 })
-app.get('/api/persons' ,(request,response) => {
+
+app.get('/api/persons', (request, response) => {
     Person.find({})
-    .then(persons => {
-        response.json(persons)
-    })
-    .catch(error => {
-        console.log(error)
-        response.status(500).json({error: 'something went wrong fetching from database'})
-    })
+        .then(persons => {
+            response.json(persons)
+        })
+        .catch(error => {
+            console.log(error)
+            response.status(500).json({ error: 'something went wrong fetching from database' })
+        })
 })
+
 app.get('/info', (request, response) => {
     const d = new Date()
     response.send(`<p>Phonebook has info for ${persons.length} people<p> 
                     <p> ${d}`)
 })
-app.get('/api/persons/:id', (request,response) => {
-    const id = request.params.id
-    const person = persons.find(note => note.id === id)
 
-    if (person) {
-        response.json(person)
-    } else {
-        response.status(404).end()
-    }
+app.get('/api/persons/:id', (request, response) => {
+    Person.findById(request.params.id).then(note => {
+        response.json(note)
+    })
 })
-app.delete('/api/persons/:id', (request,response) => {
-    const id = Number(request.params.id)
-    persons = persons.filter(note => note.id !== id)
 
-    response.status(204).end()
+app.delete('/api/persons/:id', (request, response) => {
+    Person.findByIdAndDelete(request.params.id)
+    .then(result => {
+        if (result) {
+            response.status(204).end()
+        } else {
+            response.status(404).json({error: "person not found"})
+        }
+    })
+    .catch(error => {
+        console.log(error)
+        response.status(500).json({error: "Something went wrong deleting the person"})
+    })
 })
 
 app.use(unknownEndpoint)

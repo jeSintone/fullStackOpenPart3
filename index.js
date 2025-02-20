@@ -54,12 +54,6 @@ const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 }
 
-const generateId = () => {
-    const randomNumber = Math.floor(Math.random() * 999999)
-    console.log(randomNumber)
-    return randomNumber
-}
-
 app.post('/api/persons', (request, response) => {
     const body = request.body
 
@@ -106,13 +100,19 @@ app.get('/info', (request, response) => {
                     <p> ${d}`)
 })
 
-app.get('/api/persons/:id', (request, response) => {
-    Person.findById(request.params.id).then(note => {
-        response.json(note)
+app.get('/api/persons/:id', (request, response, next) => {
+    Person.findById(request.params.id)
+    .then(note => {
+        if (person) {
+            response.json(note)
+        } else {
+            response.status(404).end()
+        }
     })
+    .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
     Person.findByIdAndDelete(request.params.id)
     .then(result => {
         if (result) {
@@ -121,13 +121,20 @@ app.delete('/api/persons/:id', (request, response) => {
             response.status(404).json({error: "person not found"})
         }
     })
-    .catch(error => {
-        console.log(error)
-        response.status(500).json({error: "Something went wrong deleting the person"})
-    })
+    .catch(error => next(error))
 })
 
 app.use(unknownEndpoint)
+
+// Important to implement error handler after every other middleware!
+const errorHandler = (error,request,response,next) => {
+    console.error(error.message)
+    if (error.name === "CastError") {
+        return response.status(400).send({error: "malformatted id"})
+    }
+    next(error)
+}
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {

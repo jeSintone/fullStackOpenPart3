@@ -79,6 +79,21 @@ app.post('/api/persons', (request, response) => {
     })
 })
 
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+
+    const person = {
+        name: body.name,
+        number: body.number
+    }
+    
+    Person.findByIdAndUpdate(request.params.id, person, {new: true})
+        .then(updatedPerson => {
+            response.json(updatedPerson)
+        })
+        .catch(error => next(error))
+}) 
+
 app.get('/', (request, response) => {
     response.send('<h1>Persons frontpage<h1>')
 })
@@ -102,9 +117,9 @@ app.get('/info', (request, response) => {
 
 app.get('/api/persons/:id', (request, response, next) => {
     Person.findById(request.params.id)
-    .then(note => {
+    .then(person => {
         if (person) {
-            response.json(note)
+            response.json(person)
         } else {
             response.status(404).end()
         }

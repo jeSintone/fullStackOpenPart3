@@ -20,10 +20,6 @@ export default [
       'arrow-spacing': [
         'error', { 'before': true, 'after': true },
       ],
-      '@stylistic/js/indent': [
-        'error',
-        2
-      ],
       '@stylistic/js/linebreak-style': [
         'error',
         'windows'
